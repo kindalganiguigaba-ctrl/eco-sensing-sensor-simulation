@@ -1,0 +1,24 @@
+# depslib dependency file v1.0
+1767998632 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing\main.c
+	<stdio.h>
+	"capteur.h"
+
+1768069997 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing\fichier.c
+	"capteur.h"
+	<stdio.h>
+	<string.h>
+
+1768069933 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing\memoire.c
+	"capteur.h"
+	<time.h>
+
+1768069357 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing\simulation.c
+	"capteur.h"
+	<stdio.h>
+	<time.h>
+	<math.h>
+
+1768069281 c:\users\hp\onedrive\desktop\informatique\eco-sensing\capteur.h
+	<stdio.h>
+	<stdlib.h>
+
