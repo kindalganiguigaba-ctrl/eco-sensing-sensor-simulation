@@ -32,13 +32,13 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="capteur.h" />
-		<Unit filename="fichier.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="memoire.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="persistence.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="simulation.c">

@@ -1,94 +1,64 @@
-/*
- * main.c
- *
- * Point d'entrée et boucle principale de la simulation.
- *
- * Compilation:
- *   gcc -std=c11 -Wall -Wextra -o sensor_simulation main.c simulation.c memoire.c fichier.c -lm
- *
- * Usage:
- *   ./sensor_simulation [batterie_init] [x y]
- */
-#include "capteur.h"
-#include <time.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include "capteur.h"
 
-int main(int argc, char *argv[]) {
+#define SAVE_FILENAME "save.bin"
+#define LOG_FILENAME  "log.txt"
+
+int main(void) {
     srand((unsigned int)time(NULL));
     Capteur c;
-    /* Valeurs par défaut ; on peut ajuster via argv si souhaité */
-    float init_battery = 1.0f; /* Joules par défaut */
-    float pos_x = 10.0f;
-    float pos_y = 5.0f;
+    memset(&c, 0, sizeof(Capteur));
 
-    if (argc >= 2) init_battery = (float)atof(argv[1]);
-    if (argc >= 4) {
-        pos_x = (float)atof(argv[2]);
-        pos_y = (float)atof(argv[3]);
+    /* 1. Chargement ou Initialisation */
+    if (charger_etat(&c, SAVE_FILENAME) != 0) {
+        c.batterie = 50.0f; // 50 Joules pour durer longtemps
+        c.x = 10.0f;
+        c.y = 10.0f;
+        c.next_id = 1;
+        c.buffer_usage = 0;
+        c.paquets_transmis = 0;
+        printf("Nouvelle simulation : Batterie = %.2f J\n", c.batterie);
     }
 
-    init_capteur(&c, init_battery, pos_x, pos_y);
-
-    /* Proposition de charger l'état si save.bin existe */
-    FILE *fcheck = fopen(SAVE_FILE, "rb");
-    if (fcheck) {
-        fclose(fcheck);
-        printf("Fichier '%s' detecte. Charger l'etat precedent ? (y/n) : ", SAVE_FILE);
-        int ch = getchar();
-        while (getchar() != '\n'); /* vider stdin */
-        if (ch == 'y' || ch == 'Y') {
-            if (!charger_etat(&c)) {
-                printf("Impossible de charger l'etat. Demarrage d'une nouvelle simulation.\n");
-                init_capteur(&c, init_battery, pos_x, pos_y);
-            }
-        } else {
-            printf("Demarrage d'une nouvelle simulation.\n");
-        }
-    } else {
-        printf("Aucun etat précédent trouvé. Demarrage d'une nouvelle simulation.\n");
+    /* 2. Ouverture du log */
+    c.fichier_log = fopen(LOG_FILENAME, "a");
+    if (c.fichier_log) {
+        fprintf(c.fichier_log, "--- Nouvelle Session ---\n");
     }
 
-    print_separator();
-    printf("Simulation demarree : batterie=%.4f J, position=(%.2f,%.2f)\n", c.batterie, c.x, c.y);
-    print_separator();
-
-    long total_transmis = 0;
-    int cycle = 0;
-
-    /* Boucle de simulation principale */
+    long temps = 0;
+    /* 3. Boucle de simulation */
     while (c.batterie > 0.0f) {
-        cycle++;
-        printf("[Cycle %d] Debut. Batterie=%.4f J\n", cycle, c.batterie);
+        temps++;
+        printf("\n--- CYCLE %ld | Buffer: %d/%d ---\n", temps, c.buffer_usage, BUFFER_MAX);
 
-        /* Produire un paquet à chaque cycle */
+        /* Production (ajoute 1 paquet, gère la saturation de 5) */
         produire_paquet(&c);
 
-        /* Afficher buffer avant transmission */
+        /* Affichage pour ta vidéo/debug */
         afficher_buffer(&c);
 
-        /* Tentative d'envoi */
-        int envoyes = envoyer_paquets(&c);
-        total_transmis += envoyes;
-        if (envoyes > 0) {
-            printf("%d paquet(s) transmis ce cycle. Batterie restante=%.4f J\n", envoyes, c.batterie);
+        /* Transmission (envoie 1 seul paquet max grâce au 'if' dans simulation.c) */
+        transmettre_paquet(&c);
+
+        /* Journalisation (Crash Test) */
+        if (c.fichier_log) {
+            fprintf(c.fichier_log, "Temps: %lds | Batterie: %.4fJ | Paquets en attente: %d\n",
+                    temps, c.batterie, c.buffer_usage);
+            fflush(c.fichier_log);
         }
 
-        /* Sauvegarder l'état à la fin de chaque cycle */
-        sauvegarder_etat(&c);
-
-        print_separator();
-
-        /* Petite sécurité : éviter boucle infinie imprévue (optionnel) */
-        if (cycle > 1000000) {
-            fprintf(stderr, "Nombre de cycles trop eleve, arrêt de securite.\n");
-            break;
-        }
+        /* Sauvegarde binaire */
+        sauvegarder_etat(&c, SAVE_FILENAME);
     }
 
-    printf("Capteur mort. Nombre total de paquets transmis avant panne : %ld\n", total_transmis);
+    printf("\n--- CAPTEUR MORT A %lds ---\n", temps);
+    printf("Total transmis : %d paquets.\n", c.paquets_transmis);
 
-    /* Nettoyage final */
-    liberer_buffer(&c);
-
+    if (c.fichier_log) fclose(c.fichier_log);
+    liberer_liste(&c);
     return 0;
 }

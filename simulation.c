@@ -1,90 +1,72 @@
-#include "capteur.h"
 #include <stdio.h>
-#include <time.h>
 #include <math.h>
+#include "capteur.h"
 
-/* Initialise le capteur */
-void init_capteur(Capteur *c, float batterie_init, float x, float y) {
-    c->batterie = batterie_init;
-    c->x = x;
-    c->y = y;
-    c->buffer_tete = NULL;
-    c->buffer_usage = 0;
-    c->next_id = 1;
+/* Paramètres énergétiques demandés */
+#define E_ELEC 0.05f   /* Joules */
+#define E_AMP  0.01f   /* Joules / m^2 */
+/* Petite consommation de base par cycle (simule tâches non-radio) */
+#define CONSO_BASE 0.001f
+
+/* Calcule le coût d'une transmission (distance 2D vers 0,0) */
+float cout_transmission(Capteur *c) {
+    if (!c) return 0.0f;
+    double dx = (double)c->x;
+    double dy = (double)c->y;
+    double d2 = dx*dx + dy*dy;
+    double energie = (double)E_ELEC + (double)E_AMP * d2;
+    return (float)energie;
 }
 
-/* Produire un paquet : creation dynamique, gestion saturation (sliding window),
- * ajout en fin de liste. Utilise les fonctions de memoire.c.
- */
-void produire_paquet(Capteur *c) {
-    /* Génération aléatoire de la mesure (0.0 - 100.0) */
-    float v = ((float)rand() / (float)RAND_MAX) * 100.0f;
-    long ts = (long)time(NULL);
-    int id = c->next_id++;
+/* Tente d'envoyer les paquets en file d'attente.
+   Envoie autant de paquets que la batterie le permet (FIFO).
+   Retourne le nombre de paquets transmis lors de cet appel.
+*/
 
-    Paquet *nouveau = creer_paquet(id, v, ts);
-    if (!nouveau) return; /* erreur allocation */
+/* Tente d'envoyer UN SEUL paquet par cycle pour permettre au buffer de se remplir */
+int transmettre_paquet(Capteur *c) {
+    if (!c || !c->buffer_tete) return 0;
+    int transmis = 0;
 
-    /* Si buffer plein : supprimer le paquet le plus ancien (tete) */
-    if (c->buffer_usage >= MAX_BUFFER) {
-        /* suppression et message d'alerte */
-        supprimer_tete_alerte(c);
-    }
+    float cout = cout_transmission(c);
 
-    /* Ajout en fin de liste */
-    ajouter_paquet_fin(c, nouveau);
-    printf("Produit paquet ID=%d valeur=%.2f timestamp=%ld (buffer=%d)\n", id, v, ts, c->buffer_usage);
-}
+    /* On utilise 'if' au lieu de 'while' pour limiter à 1 envoi par cycle */
+    if (c->batterie >= cout) {
+        /* Consommer l'énergie */
+        c->batterie -= cout;
 
-/* Affiche rapidement le contenu du buffer (IDs) */
-void afficher_buffer(const Capteur *c) {
-    printf("Buffer (usage=%d):", c->buffer_usage);
-    Paquet *cur = c->buffer_tete;
-    while (cur) {
-        printf(" [%d]", cur->id);
-        cur = cur->suivant;
-    }
-    printf("\n");
-}
+        /* Détacher le paquet de la tête (le plus ancien) */
+        Paquet *p = c->buffer_tete;
+        c->buffer_tete = p->suivant;
 
-/* Calcule le coût d'envoi d'un paquet selon la distance */
-float cout_envoi(const Capteur *c) {
-    double d = sqrt(pow((double)c->x, 2.0) + pow((double)c->y, 2.0));
-    double cost = (double)E_ELEC + (double)E_AMP * d * d;
-    return (float)cost;
-}
-
-/* Tente d'envoyer les paquets du buffer (FIFO). Retourne le nombre de paquets transmis dans cet appel */
-int envoyer_paquets(Capteur *c) {
-    int transmet = 0;
-    float cost = cout_envoi(c);
-
-    /* On envoie tant qu'il y a des paquets ET assez d'énergie pour envoyer un paquet */
-    while (c->buffer_tete != NULL) {
-        if (c->batterie <= 0.0f) {
-            c->batterie = 0.0f;
-            break;
+        /* Si la liste devient vide, on réinitialise la queue */
+        if (c->buffer_tete == NULL) {
+            c->buffer_queue = NULL;
         }
-        if (c->batterie >= cost) {
-            /* transmission réussie */
-            Paquet *env = c->buffer_tete;
-            c->buffer_tete = env->suivant;
-            printf("Transmis paquet ID=%d (coût=%.4f J). Batterie avant=%.4f J\n", env->id, cost, c->batterie);
-            c->batterie -= cost;
-            free(env);
-            c->buffer_usage--;
-            transmet++;
-        } else {
-            /* Pas assez d'énergie pour envoyer ce paquet */
-            printf("Energie insuffisante pour envoyer le paquet ID=%d (besoin=%.4f J, restant=%.4f J). Capteur mort.\n",
-                   c->buffer_tete->id, cost, c->batterie);
-            c->batterie = 0.0f;
-            break;
-        }
+
+        c->buffer_usage--;
+        c->paquets_transmis++;
+
+        printf("[TX] Envoi paquet ID %d | cout=%.4f J | batterie restante=%.4f J\n",
+               p->id, cout, c->batterie);
+
+        free(p); // Libération impérative
+        transmis = 1;
+    } else {
+        printf("[TX] Batterie insuffisante (%.4f J) pour envoyer (coût=%.4f J)\n",
+               c->batterie, cout);
     }
-    return transmet;
+
+    /* Consommation de base du circuit à chaque cycle */
+    c->batterie -= CONSO_BASE;
+    if (c->batterie < 0.0f) c->batterie = 0.0f;
+
+    return transmis;
 }
 
-void print_separator(void) {
-    printf("------------------------------------------------------------\n");
+/* Affiche l'état succinct du capteur */
+void afficher_etat(Capteur *c, long temps) {
+    if (!c) return;
+    printf("Temps: %lds | Batterie: %.4fJ | Paquets en attente: %d | Transmis: %d\n",
+           temps, c->batterie, c->buffer_usage, c->paquets_transmis);
 }

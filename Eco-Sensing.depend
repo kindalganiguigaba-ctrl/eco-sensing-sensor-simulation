@@ -22,3 +22,33 @@
 	<stdio.h>
 	<stdlib.h>
 
+1768246849 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\fichier.c
+	"capteur.h"
+
+1768252714 c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\capteur.h
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+
+1768248890 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\main.c
+	"capteur.h"
+	<time.h>
+	<stdio.h>
+	<ctype.h>
+
+1768252714 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\memoire.c
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	"capteur.h"
+
+1768248890 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\simulation.c
+	"capteur.h"
+	<math.h>
+	<time.h>
+
+1768252714 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\persistence.c
+	<stdio.h>
+	<stdlib.h>
+	"capteur.h"
+
