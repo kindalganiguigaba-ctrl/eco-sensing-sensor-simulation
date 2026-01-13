@@ -53,3 +53,18 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Fichiers générés par le programme
+log.txt
+save.bin
+
+# Fichiers IDE (Code::Blocks / VS Code)
+*.layout
+*.depend
+*.cbp
+
+# Fichiers compilés
+*.exe
+*.o
+bin/
+obj/
