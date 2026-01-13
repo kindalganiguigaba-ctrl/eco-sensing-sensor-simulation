@@ -1,16 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "capteur.h"
 
-/* Format de sauvegarde (binaire):
+#define MAGIC "ECS1"
+#define MAGIC_SIZE 4
+
+/* Format binaire:
+   - magic (4 bytes) : "ECS1"
    - batterie (float)
    - x (float)
    - y (float)
    - buffer_usage (int)
    - next_id (int)
    - paquets_transmis (int)
-   - suivi par buffer_usage fois : (id int, valeur float, timestamp long)
-   La sauvegarde n'écrit pas les pointeurs bruts.
+   - then buffer_usage times: id (int), valeur (float), timestamp (long)
 */
 
 int sauvegarder_etat(Capteur *c, const char *filename) {
@@ -21,6 +25,7 @@ int sauvegarder_etat(Capteur *c, const char *filename) {
         return -1;
     }
 
+    if (fwrite(MAGIC, 1, MAGIC_SIZE, f) != MAGIC_SIZE) goto err;
     if (fwrite(&c->batterie, sizeof(float), 1, f) != 1) goto err;
     if (fwrite(&c->x, sizeof(float), 1, f) != 1) goto err;
     if (fwrite(&c->y, sizeof(float), 1, f) != 1) goto err;
@@ -48,11 +53,17 @@ int charger_etat(Capteur *c, const char *filename) {
     if (!c || !filename) return -1;
     FILE *f = fopen(filename, "rb");
     if (!f) {
-        /* Pas de fichier : signaler avec -1 (caller peut démarrer une simulation neuve) */
         return -1;
     }
 
-    /* Avant de charger, s'assurer que la liste existante est libérée */
+    char magic[MAGIC_SIZE + 1] = {0};
+    if (fread(magic, 1, MAGIC_SIZE, f) != MAGIC_SIZE) goto err;
+    if (strncmp(magic, MAGIC, MAGIC_SIZE) != 0) {
+        fprintf(stderr, "charger_etat: magic invalide dans %s\n", filename);
+        fclose(f);
+        return -1;
+    }
+
     liberer_liste(c);
 
     if (fread(&c->batterie, sizeof(float), 1, f) != 1) goto err;
@@ -61,6 +72,12 @@ int charger_etat(Capteur *c, const char *filename) {
     if (fread(&c->buffer_usage, sizeof(int), 1, f) != 1) goto err;
     if (fread(&c->next_id, sizeof(int), 1, f) != 1) goto err;
     if (fread(&c->paquets_transmis, sizeof(int), 1, f) != 1) goto err;
+
+    if (c->buffer_usage < 0 || c->buffer_usage > BUFFER_MAX) {
+        fprintf(stderr, "charger_etat: buffer_usage invalide (%d) dans %s\n", c->buffer_usage, filename);
+        fclose(f);
+        return -1;
+    }
 
     Paquet *last = NULL;
     for (int i = 0; i < c->buffer_usage; ++i) {

@@ -25,30 +25,37 @@
 1768246849 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\fichier.c
 	"capteur.h"
 
-1768252714 c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\capteur.h
+1768290431 c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\capteur.h
 	<stdio.h>
 	<stdlib.h>
 	<time.h>
 
-1768248890 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\main.c
-	"capteur.h"
-	<time.h>
+1768290554 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\main.c
 	<stdio.h>
-	<ctype.h>
+	<stdlib.h>
+	<string.h>
+	<time.h>
+	"capteur.h"
 
-1768252714 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\memoire.c
+1768290432 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\memoire.c
 	<stdio.h>
 	<stdlib.h>
 	<time.h>
 	"capteur.h"
 
-1768248890 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\simulation.c
-	"capteur.h"
+1768290431 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\simulation.c
 	<math.h>
-	<time.h>
+	"capteur.h"
 
-1768252714 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\persistence.c
+1768290432 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\persistence.c
 	<stdio.h>
 	<stdlib.h>
+	<string.h>
+	"capteur.h"
+
+1768290431 source:c:\users\hp\onedrive\desktop\informatique\eco-sensing-sensor-simulation\logger.c
+	<stdio.h>
+	<stdarg.h>
+	<time.h>
 	"capteur.h"
 

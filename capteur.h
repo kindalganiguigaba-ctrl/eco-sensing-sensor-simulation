@@ -15,11 +15,11 @@ typedef struct Paquet {
 } Paquet;
 
 typedef struct Capteur {
-    float batterie;        /* Niveau d'énergie (Joules) */
+    float batterie;        /* Niveau d'energie (Joules) */
     float x, y;            /* Position */
-    Paquet *buffer_tete;   /* Tête (plus ancien) */
-    Paquet *buffer_queue;  /* Queue (plus récent) pour ajout rapide */
-    int buffer_usage;      /* Nombre de paquets en mémoire */
+    Paquet *buffer_tete;   /* Tete (plus ancien) */
+    Paquet *buffer_queue;  /* Queue (plus recent) pour ajout rapide */
+    int buffer_usage;      /* Nombre de paquets en memoire */
     int next_id;           /* Prochain id de paquet */
     int paquets_transmis;  /* Compteur de paquets transmis */
     FILE *fichier_log;     /* Pointeur vers log.txt */
@@ -38,5 +38,8 @@ void afficher_etat(Capteur *c, long temps);
 /* persistence.c */
 int sauvegarder_etat(Capteur *c, const char *filename);
 int charger_etat(Capteur *c, const char *filename);
+
+/* logger.c */
+void log_append(FILE *f, const char *fmt, ...);
 
 #endif /* CAPTEUR_H */

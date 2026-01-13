@@ -3,8 +3,9 @@
 #include <time.h>
 #include "capteur.h"
 
-static float gen_valeur() {
-    return ((float)rand() / (float)RAND_MAX) * 100.0f; /* 0.0 - 100.0 */
+/* Generation de valeur aleatoire entre 0.0 et 100.0 */
+static float gen_valeur(void) {
+    return ((float)rand() / (float)RAND_MAX) * 100.0f;
 }
 
 static Paquet *creer_paquet_interne(int id) {
@@ -17,23 +18,37 @@ static Paquet *creer_paquet_interne(int id) {
     return p;
 }
 
-/* Supprime la tête (plus ancien) et free() : affiche l'alerte */
+/* Supprime la tete (plus ancien) et free() : affiche l'alerte + log file
+   IMPORTANT : suppression faite AVANT l'ajout du nouveau paquet, donc
+   l'alerte apparait immediatement au moment de la tentative d'ajout. */
 static void supprimer_tete(Capteur *c) {
     if (!c || !c->buffer_tete) return;
     Paquet *old = c->buffer_tete;
     c->buffer_tete = old->suivant;
     if (c->buffer_tete == NULL) c->buffer_queue = NULL;
+
+    /* Message console (ASCII only) */
     printf("ALERTE : Memoire saturee. Suppression du paquet ID [%d] pour liberer de l'espace.\n", old->id);
+
+    /* Egalement loguer dans log.txt si ouvert, avec une mise en forme lisible */
+    if (c->fichier_log) {
+        log_append(c->fichier_log, "ALERTE : Memoire saturee. Suppression du paquet ID [%d] pour liberer de l'espace.", old->id);
+    }
+
     free(old);
-    c->buffer_usage--;
+    if (c->buffer_usage > 0) c->buffer_usage--;
 }
 
-/* Ajoute à la queue en respectant BUFFER_MAX */
+/* Ajoute a la queue en respectant BUFFER_MAX */
 static void ajouter_queue(Capteur *c, Paquet *p) {
     if (!c || !p) return;
+
+    /* Si plein : supprimer la tete AVANT d'insere le nouveau paquet.
+       Cela garantit que l'alerte est immediatement visible au moment de l'ajout. */
     if (c->buffer_usage >= BUFFER_MAX) {
         supprimer_tete(c);
     }
+
     if (c->buffer_tete == NULL) {
         c->buffer_tete = p;
         c->buffer_queue = p;
@@ -53,9 +68,14 @@ void produire_paquet(Capteur *c) {
         return;
     }
     ajouter_queue(c, p);
+
+    /* Log de production (lisible) */
+    if (c->fichier_log) {
+        log_append(c->fichier_log, "PROD : paquet ID %d ajoute. Buffer: %d/%d", p->id, c->buffer_usage, BUFFER_MAX);
+    }
 }
 
-/* Affiche le contenu du buffer (pour traçabilité) */
+/* Affiche le contenu du buffer (pour tracabilite) */
 void afficher_buffer(Capteur *c) {
     if (!c) return;
     printf("\n--- CONTENU DU BUFFER (%d/%d) ---\n", c->buffer_usage, BUFFER_MAX);
@@ -69,7 +89,7 @@ void afficher_buffer(Capteur *c) {
     printf("----------------------------------\n");
 }
 
-/* Libère toute la liste chaînée (appelé à la fin ou avant rechargement) */
+/* Libere toute la liste chainee (appele a la fin ou avant rechargement) */
 void liberer_liste(Capteur *c) {
     if (!c) return;
     Paquet *cur = c->buffer_tete;
