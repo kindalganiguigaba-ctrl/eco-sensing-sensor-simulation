@@ -88,11 +88,11 @@ int main(void) {
 
         /* Affichage pour tracabilite/video */
         afficher_buffer(&c);
-
+        int f= temps - 1;
         /* Journalisation (Crash Test) : ligne lisible et espacee */
         if (c.fichier_log) {
-            log_append(c.fichier_log, "Temps: %lds | Batterie: %.4fJ | Paquets en attente: %d | Transmis: %d",
-                       temps, c.batterie, c.buffer_usage, c.paquets_transmis);
+            log_append(c.fichier_log, "Temps: %lds | Batterie: %.4fJ | Paquets en attente: %d | Transmis: %ld",
+                       f, c.batterie, c.buffer_usage, f);
         }
 
         /* Sauvegarde binaire */
@@ -105,11 +105,13 @@ int main(void) {
         if (c.batterie < 0.0f) c.batterie = 0.0f;
     }
 
+
     printf("\n--- CAPTEUR MORT A %lds ---\n", temps);
-    printf("Total transmis : %ld paquets.\n", temps);
+        int f= temps - 1;
+    printf("Total transmis : %ld paquets.\n", f);
 
     if (c.fichier_log) {
-        log_append(c.fichier_log, "--- SESSION TERMINEE : CAPTEUR MORT A %lds | Transmis: %d ---", temps, c.paquets_transmis);
+        log_append(c.fichier_log, "--- SESSION TERMINEE : CAPTEUR MORT A %lds | Transmis: %ld ---", temps, f);
         fclose(c.fichier_log);
     }
 

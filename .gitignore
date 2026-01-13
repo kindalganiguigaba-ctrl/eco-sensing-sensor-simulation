@@ -64,7 +64,5 @@ save.bin
 *.cbp
 
 # Fichiers compilés
-*.exe
-*.o
 bin/
 obj/
